@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/google/uuid"
 	"go.mercari.io/datastore"
 	"go.mercari.io/datastore/boom"
 	"go.mercari.io/datastore/clouddatastore"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/api/iterator"
 	"log"
 	"os"
 	"reflect"
@@ -69,6 +71,21 @@ func main() {
 	err = BenchFuncSeconds(CreateDatastoreKeies, b)
 	if err != nil {
 		log.Printf("CreateDatastoreKeies err: %v", err)
+	}
+
+	err = BenchFuncSeconds(GetFirstWithIterator, b)
+	if err != nil {
+		log.Printf("GetFirstWithIterator err: %v", err)
+	}
+
+	err = BenchFuncSeconds(GetFirstWithGetAll, b)
+	if err != nil {
+		log.Printf("GetFirstWithGetAll err: %v", err)
+	}
+
+	err = BenchFuncSeconds(GetMultiWithIterator, b)
+	if err != nil {
+		log.Printf("GetWithIterator err: %v", err)
 	}
 }
 
@@ -305,6 +322,67 @@ func PutMultiWithErrorGroupBoom(b *boom.Boom) error {
 		return nil
 	})
 	return err
+}
+
+func GetFirstWithIterator(b *boom.Boom) error {
+	var do DummyObject
+	var err error
+	_, _ = b.RunInTransaction(func(tx *boom.Transaction) error {
+		bm := tx.Boom()
+		q := bm.NewQuery("DummyObject")
+		it := bm.Run(q)
+		_, err = it.Next(&do)
+		if err != nil {
+			if err == iterator.Done {
+				return errors.New("not found")
+			}
+			return err
+		}
+		return nil
+	})
+	log.Println(do)
+	return nil
+}
+
+func GetFirstWithGetAll(b *boom.Boom) error {
+	var do *DummyObject
+	_, _ = b.RunInTransaction(func(tx *boom.Transaction) error {
+		bm := tx.Boom()
+		q := bm.NewQuery("DummyObject").
+				Offset(1)
+		var doList []*DummyObject
+		count, _ := bm.Count(q)
+		if count == 0 {
+			return errors.New("not found")
+		}
+		_, _ = bm.GetAll(q, &doList)
+		do = doList[0]
+		return nil
+	})
+	return nil
+}
+
+func GetMultiWithIterator(b *boom.Boom) error {
+	var doList []*DummyObject
+	var err error
+	_, _ = b.RunInTransaction(func(tx *boom.Transaction) error {
+		bm := tx.Boom()
+		q := bm.NewQuery("DummyObject")
+		it := bm.Run(q)
+		for i:=0;i<3;i++ {
+			var do DummyObject
+			_, err = it.Next(&do)
+			if err != nil {
+				break
+			}
+			doList = append(doList, &do)
+		}
+		if err != nil && err != iterator.Done {
+			return err
+		}
+		return nil
+	})
+	return nil
 }
 
 func CreateDatastoreKeies(b *boom.Boom) error {
