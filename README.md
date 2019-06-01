@@ -1,4 +1,4 @@
-# verification_mercari_datastore_boom
+# VerificationMercariDatastore
 
 ## 個人的な検証用PJ
 
