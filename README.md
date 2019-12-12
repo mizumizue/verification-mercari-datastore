@@ -1,9 +1,9 @@
-# VerificationMercariDatastore
+# verification-mercari-datastore
 
 ## 個人的な検証用PJ
 
 下記検証ライブラリ。
-書き方の差異による性能検証やそもそもの使い方、書き方の検証が目的。
+書き方の差異による性能やそもそもの使い方、書き方の検証が目的。
 
 - [mercari/datastore](https://github.com/mercari/datastore)
 - [boom](https://github.com/mercari/datastore/tree/master/boom) 
